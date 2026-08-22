@@ -412,7 +412,7 @@ namespace oled {
         for (let col = 0; col < 5; col++) {
             let lineBits = font5x7[index2 + col]
 
-            for (let row2 = 0; row2 < 7; row2++) {
+            for (let row2 = 0; row2 < 8; row2++) {
                 if ((lineBits & (1 << row2)) != 0) {
                     if (size <= 1) {
                         pixel(x + col, y + row2, on)
