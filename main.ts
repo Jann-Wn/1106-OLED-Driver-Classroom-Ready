@@ -445,14 +445,16 @@ namespace oled {
             let topByte = FONT_CN_DATA[offset + col]
             let botByte = FONT_CN_DATA[offset + 16 + col]
 
-            // MSB-first: bit 7 = top pixel row (y), bit 0 = bottom pixel row (y+7)
+            // LSB-first: glyph top row (bit 0, per gen_font_cn_buffer.py
+            // top |= (1 << row)) maps to screen top (pixel mask 1 << (y % 8),
+            // same as ASCII drawChar). Bit 7 = row 7 of glyph half.
             for (let row = 0; row < 8; row++) {
-                if ((topByte & (1 << (7 - row))) != 0) {
+                if ((topByte & (1 << row)) != 0) {
                     pixel(x + col, y + row, on)
                 }
             }
             for (let row = 0; row < 8; row++) {
-                if ((botByte & (1 << (7 - row))) != 0) {
+                if ((botByte & (1 << row)) != 0) {
                     pixel(x + col, y + 8 + row, on)
                 }
             }
