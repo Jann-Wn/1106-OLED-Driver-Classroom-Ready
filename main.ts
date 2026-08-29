@@ -424,6 +424,41 @@ namespace oled {
         }
     }
 
+    function drawCharCN(code: number, x: number, y: number, on: boolean): void {
+        let idx = -1
+        for (let i = 0; i < FONT_CN_CODES.length; i += 2) {
+            // & 0xFF ensures unsigned byte comparison (device may return signed bytes)
+            let hi = FONT_CN_CODES[i] & 0xFF
+            let lo = FONT_CN_CODES[i + 1] & 0xFF
+            if (((hi << 8) | lo) === code) {
+                idx = i / 2
+                break
+            }
+        }
+        if (idx < 0) {
+            return
+        }
+        // Single flat buffer: offset = idx * 32
+        let offset = idx * 32
+
+        for (let col = 0; col < 16; col++) {
+            let topByte = FONT_CN_DATA[offset + col]
+            let botByte = FONT_CN_DATA[offset + 16 + col]
+
+            // MSB-first: bit 7 = top pixel row (y), bit 0 = bottom pixel row (y+7)
+            for (let row = 0; row < 8; row++) {
+                if ((topByte & (1 << (7 - row))) != 0) {
+                    pixel(x + col, y + row, on)
+                }
+            }
+            for (let row = 0; row < 8; row++) {
+                if ((botByte & (1 << (7 - row))) != 0) {
+                    pixel(x + col, y + 8 + row, on)
+                }
+            }
+        }
+    }
+
     //% block="show text %message x %x y %y size %size"
     //% group="Basic"
     //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
@@ -448,9 +483,118 @@ namespace oled {
             size = 4
         }
 
-        for (let m = 0; m < message.length; m++) {
-            drawChar(message.charAt(m), x + m * 6 * size, y, size, on)
+        let curX = x
+        let m = 0
+        while (m < message.length) {
+            let b0 = message.charCodeAt(m)
+            if (b0 < 0x80) {
+                drawChar(String.fromCharCode(b0), curX, y, size, on)
+                curX += 6 * size
+                m++
+            } else if ((b0 & 0xE0) == 0xC0) {
+                let cp = ((b0 & 0x1F) << 6) | (message.charCodeAt(m + 1) & 0x3F)
+                drawCharCN(cp, curX, y, on)
+                curX += 17 * size
+                m += 2
+            } else if ((b0 & 0xF0) == 0xE0) {
+                let cp = ((b0 & 0x0F) << 12) | ((message.charCodeAt(m + 1) & 0x3F) << 6) | (message.charCodeAt(m + 2) & 0x3F)
+                drawCharCN(cp, curX, y, on)
+                curX += 17 * size
+                m += 3
+            } else {
+                m++
+            }
         }
+    }
+
+    // Chinese phrase buffers — UInt16BE code points, bypass PXT string truncation
+    const CN_BUF_0: Buffer = hex`4F60597D4E16754C`
+    const CN_BUF_1: Buffer = hex`4F60597D`
+    const CN_BUF_2: Buffer = hex`6E295EA64F20611F5668`
+    const CN_BUF_3: Buffer = hex`4ECA592959296C14`
+    const CN_BUF_4: Buffer = hex`52A051CF4E589664`
+    const CN_BUF_5: Buffer = hex`6211723151664E60`
+    const CN_BUF_6: Buffer = hex`65705357`
+
+    function renderCN(buf: Buffer, x: number, y: number, size: number, on: boolean): void {
+        let curX = x
+        for (let i = 0; i < buf.length; i += 2) {
+            let hi = buf[i] & 0xFF
+            let lo = buf[i + 1] & 0xFF
+            let cp = (hi << 8) | lo
+            drawCharCN(cp, curX, y, on)
+            curX += 17 * size
+        }
+    }
+
+    //% block="show 你好世界 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNHelloWorld(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_0, x, y, size, true)
+        show()
+    }
+
+    //% block="show 你好 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNHello(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_1, x, y, size, true)
+        show()
+    }
+
+    //% block="show 温度传感器 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNTempSensor(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_2, x, y, size, true)
+        show()
+    }
+
+    //% block="show 今天天气 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNWeather(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_3, x, y, size, true)
+        show()
+    }
+
+    //% block="show 加减乘除 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNMath(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_4, x, y, size, true)
+        show()
+    }
+
+    //% block="show 我爱学习 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNLoveLearn(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_5, x, y, size, true)
+        show()
+    }
+
+    //% block="show 数字 x %x y %y size %size"
+    //% group="Advanced"
+    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
+    export function showCNNumber(x: number, y: number, size: number = 1): void {
+        if (!started) init()
+        clear()
+        renderCN(CN_BUF_6, x, y, size, true)
+        show()
     }
 
 }

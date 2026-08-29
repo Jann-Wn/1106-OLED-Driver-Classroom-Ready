@@ -1,5 +1,6 @@
 {
     "name": "1106 OLED Driver Classroom Ready",
+    "version": "0.2.0",
     "description": "",
     "dependencies": {
         "core": "*",
@@ -9,6 +10,7 @@
     "files": [
         "main.blocks",
         "main.ts",
+        "font_cn_1000.ts",
         "README.md"
     ],
     "testFiles": [
