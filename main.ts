@@ -488,7 +488,9 @@ namespace oled {
         let curX = x
         let m = 0
         while (m < message.length) {
-            let b0 = message.charCodeAt(m)
+            // utf8:false → PXT 的 charCodeAt 返回 signed byte（0xE4→-28），
+            // 必须 & 0xFF 还原 0-255，否则负数恒 <0x80 被当 ASCII
+            let b0 = message.charCodeAt(m) & 0xFF
             if (b0 < 0x80) {
                 drawChar(String.fromCharCode(b0), curX, y, size, on)
                 curX += 6 * size
@@ -507,96 +509,6 @@ namespace oled {
                 m++
             }
         }
-    }
-
-    // Chinese phrase buffers — UInt16BE code points, bypass PXT string truncation
-    const CN_BUF_0: Buffer = hex`4F60597D4E16754C`
-    const CN_BUF_1: Buffer = hex`4F60597D`
-    const CN_BUF_2: Buffer = hex`6E295EA64F20611F5668`
-    const CN_BUF_3: Buffer = hex`4ECA592959296C14`
-    const CN_BUF_4: Buffer = hex`52A051CF4E589664`
-    const CN_BUF_5: Buffer = hex`6211723151664E60`
-    const CN_BUF_6: Buffer = hex`65705357`
-
-    function renderCN(buf: Buffer, x: number, y: number, size: number, on: boolean): void {
-        let curX = x
-        for (let i = 0; i < buf.length; i += 2) {
-            let hi = buf[i] & 0xFF
-            let lo = buf[i + 1] & 0xFF
-            let cp = (hi << 8) | lo
-            drawCharCN(cp, curX, y, on)
-            curX += 17 * size
-        }
-    }
-
-    //% block="show 你好世界 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNHelloWorld(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_0, x, y, size, true)
-        show()
-    }
-
-    //% block="show 你好 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNHello(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_1, x, y, size, true)
-        show()
-    }
-
-    //% block="show 温度传感器 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNTempSensor(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_2, x, y, size, true)
-        show()
-    }
-
-    //% block="show 今天天气 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNWeather(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_3, x, y, size, true)
-        show()
-    }
-
-    //% block="show 加减乘除 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNMath(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_4, x, y, size, true)
-        show()
-    }
-
-    //% block="show 我爱学习 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNLoveLearn(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_5, x, y, size, true)
-        show()
-    }
-
-    //% block="show 数字 x %x y %y size %size"
-    //% group="Advanced"
-    //% x.min=0 x.max=127 y.min=0 y.max=63 size.min=1 size.max=4
-    export function showCNNumber(x: number, y: number, size: number = 1): void {
-        if (!started) init()
-        clear()
-        renderCN(CN_BUF_6, x, y, size, true)
-        show()
     }
 
 }
